@@ -1,54 +1,61 @@
 import os
-import re
 from bs4 import BeautifulSoup
-from pymorphy2 import MorphAnalyzer
+from collections import defaultdict
+from nltk.corpus import stopwords
+import pymorphy2
+import re
+
+BAD_TOKENS_TAGS = {"PREP", "CONJ", "PRCL", "INTJ", "LATN", "PNCT", "NUMB", "ROMN", "UNKN"}
 
 
 def extract_text_from_html(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        soup = BeautifulSoup(file, 'html.parser')
-        return soup.get_text()
+    with open(file_path) as f:
+        soup = BeautifulSoup(f.read(), features="html.parser")
+    return " ".join(soup.stripped_strings)
 
 
-def process_text(text, morph):
+def process_documents(directory):
+    for filename in os.listdir(directory):
+        if filename.endswith(".html"):
+            file_path = os.path.join(directory, filename)
+            text = extract_text_from_html(file_path)
+            tokenize_and_lemmatize(text)
+
+
+def tokenize_and_lemmatize(text):
     words = re.findall(r'\b[А-Яа-я]+\b', text)
+    for word in words:
+        if (
+                word.lower() not in stop_words
+                and not any(char.isdigit() for char in word)
+        ):
+            morph = morph_analyzer.parse(word)[0]
+            if (
+                    any(tag in morph.tag for tag in BAD_TOKENS_TAGS)
+                    or morph.score < 0.5
+            ):
+                continue
+            lemma = morph.normal_form
+            tokens.add(word)
+            lemmas[lemma].add(word)
 
-    tokens = [word.lower() for word in words if
-              word.isalpha() and word.lower() not in ('и', 'в', 'не', 'на', 'с', 'по', 'из')]
 
-    lemmatized_words = [morph.parse(word)[0].normal_form for word in tokens]
-
-    return tokens, lemmatized_words
+def write_tokens_to_file(tokens_file_path):
+    with open(tokens_file_path, "w", encoding="utf-8") as file:
+        file.write("\n".join(tokens))
 
 
-def main():
-    directory_path = './downloaded_pages'
-
-    all_tokens = set()
-    lemmas_with_tokens = {}
-    morph = MorphAnalyzer()
-
-    for filename in os.listdir(directory_path):
-        if filename.endswith('.html'):
-            file_path = os.path.join(directory_path, filename)
-            html_text = extract_text_from_html(file_path)
-
-            tokens, lemmas = process_text(html_text, morph)
-
-            all_tokens.update(tokens)
-
-            for lemma, token in zip(lemmas, tokens):
-                if lemma not in lemmas_with_tokens:
-                    lemmas_with_tokens[lemma] = set()
-                lemmas_with_tokens[lemma].add(token)
-
-    with open('all_tokens.txt', 'w', encoding='utf-8') as token_file:
-        token_file.write('\n'.join(all_tokens))
-
-    with open('all_lemmas.txt', 'w', encoding='utf-8') as lemmatized_file:
-        for lemma, tokens_with_lemma in lemmas_with_tokens.items():
-            lemmatized_file.write(f"{lemma}: {' '.join(tokens_with_lemma)}\n")
+def write_lemmas_to_file(lemmas_file_path):
+    with open(lemmas_file_path, "w", encoding="utf-8") as file:
+        for lemma, tokens in lemmas.items():
+            file.write(f"{lemma}: {' '.join(tokens)}\n")
 
 
 if __name__ == "__main__":
-    main()
+    stop_words = set(stopwords.words("russian"))
+    morph_analyzer = pymorphy2.MorphAnalyzer()
+    tokens = set()
+    lemmas = defaultdict(set)
+    process_documents('./downloaded_pages')
+    write_tokens_to_file("all_tokens.txt")
+    write_lemmas_to_file("all_lemmas.txt")

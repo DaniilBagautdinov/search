@@ -1,7 +1,11 @@
+import pymorphy2
 from bs4 import BeautifulSoup
 import os
 import re
 from collections import defaultdict
+from nltk.corpus import stopwords
+
+BAD_TOKENS_TAGS = {"PREP", "CONJ", "PRCL", "INTJ", "LATN", "PNCT", "NUMB", "ROMN", "UNKN"}
 
 
 def build_inverted_index_from_directory(directory_path, index_filename="inverted_index.txt"):
@@ -13,13 +17,11 @@ def build_inverted_index_from_directory(directory_path, index_filename="inverted
             if filename.endswith(".html") or filename.endswith(".htm"):
                 file_path = os.path.join(directory_path, filename)
 
-                with open(file_path, "r", encoding="utf-8") as file:
-                    html_document = file.read()
+                with open(file_path) as f:
+                    soup = BeautifulSoup(f.read(), features="html.parser")
+                text = " ".join(soup.stripped_strings)
 
-                soup = BeautifulSoup(html_document, 'html.parser')
-                text = soup.get_text()
-
-                terms = re.findall(r'\b[а-яА-ЯёЁ]+\b', text.lower())
+                terms = tokenize(text)
                 for term in set(terms):
                     inverted_index[term].append(filename)
 
@@ -42,6 +44,26 @@ def write_inverted_index(index_filename, inverted_index):
     with open(index_filename, "w", encoding="utf-8") as index_file:
         for term, filenames in inverted_index.items():
             index_file.write(f"{term}: {', '.join(filenames)}\n")
+
+
+def tokenize(text):
+    stop_words = set(stopwords.words("russian"))
+    morph_analyzer = pymorphy2.MorphAnalyzer()
+    tokens = set()
+    words = re.findall(r'\b[А-Яа-я]+\b', text)
+    for word in words:
+        if (
+                word.lower() not in stop_words
+                and not any(char.isdigit() for char in word)
+        ):
+            morph = morph_analyzer.parse(word)[0]
+            if (
+                    any(tag in morph.tag for tag in BAD_TOKENS_TAGS)
+                    or morph.score < 0.5
+            ):
+                continue
+            tokens.add(word)
+    return tokens
 
 
 def boolean_search(query, inverted_index):
@@ -77,6 +99,6 @@ def boolean_search(query, inverted_index):
 directory_path = "./downloaded_pages"
 inverted_index = build_inverted_index_from_directory(directory_path)
 
-query = "италия"
+query = "Большая"
 result = boolean_search(query, inverted_index)
 print("Результат булевого поиска:", result)
