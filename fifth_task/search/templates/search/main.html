@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            height: 100%;
+        }
+
+        #topbar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            width: 100%;
+            position: fixed;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        #searchbar {
+            display: flex;
+            width: 100%;
+            max-width: 800px;
+            height: 60px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        #searchbar > input {
+            flex-grow: 1;
+            border: none;
+            padding-left: 24px;
+            font-size: 18px;
+            line-height: 60px;
+        }
+
+        #searchbar > input:focus {
+            outline: none;
+        }
+
+        #searchbarbutton svg {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80px;
+            background-color: #4285F4;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #searchbarbutton:hover {
+            background-color: #357ae8;
+        }
+
+        #searchbarbutton svg {
+            height: 30px;
+            width: 30px;
+        }
+
+        #searchbarbutton svg path {
+            fill: #fff;
+        }
+
+        #searchresultsarea {
+            padding-top: 150px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .searchresult h2 {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #888888;
+        }
+
+        .searchresult a {
+            font-size: 20px;
+            margin-top: 20px;
+            color: #3e30e3;
+            text-decoration: none;
+        }
+
+        .searchresult a:hover {
+            text-decoration: underline;
+        }
+
+        .searchresult p {
+            color: #545454;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div id="topbar">
+            <form action="" method="GET">
+                <div id="searchbar">
+                    <input autofocus id="searchbartext" type="text" name="q" placeholder="Search here..." value=""/>
+                    <button id="searchbarbutton" type="submit">
+                        <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+        <div id="searchresultsarea">
+            <p id="searchresultsnumber">{{ files|length }} results</p>
+            {% for file in files %}
+                <div class="searchresult">
+                    <div>
+                        <a href="{{ file.0 }}" target="_blank" rel="noopener noreferrer">{{ file.0 }}</a>
+                        <h2>{{ file.1 }}</h2>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </body>
+</html>
